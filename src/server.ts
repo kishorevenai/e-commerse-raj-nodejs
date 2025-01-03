@@ -2,9 +2,14 @@ import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import multer from "multer";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
-import sharp, { fit } from "sharp";
 import sharp from "sharp";
 
 dotenv.config();
@@ -30,8 +35,6 @@ const upload = multer({ storage: storage });
 app.use(cookieParser());
 app.use(express.json());
 
-console.log("CHECKING");
-
 app.post(
   "/api/posts",
   upload.single("image"),
@@ -40,7 +43,7 @@ app.post(
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const alteredBufferImage = sharp(req.file.buffer)
+    const alteredBufferImage = await sharp(req.file.buffer)
       .resize({ height: 1920, width: 1080, fit: "contain" })
       .toBuffer();
 
@@ -54,6 +57,8 @@ app.post(
       ContentType: req.file.mimetype,
     };
 
+    console.log(params);
+
     const command = new PutObjectCommand(params);
 
     try {
@@ -64,6 +69,48 @@ app.post(
       return res
         .status(400)
         .json({ message: "Upload failed", error: (error as Error).message });
+    }
+  }
+);
+
+app.get(
+  "/api/get-all-products",
+  async (req: Request, res: Response): Promise<any> => {
+    const getObjectParams = {
+      Bucket: bucket_name!,
+      Key: "fdbb6010db4af1140c1cfe53c47fef5ba660b0dc34fe751234a032a9501a18c3personTwo.png", // Correct 'Key' property
+    };
+
+    try {
+      const command = new GetObjectCommand(getObjectParams);
+      const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+      return res.status(200).json({ data: url });
+    } catch (error: any) {
+      console.error("S3 GetObject Error:", error.message);
+      return res
+        .status(400)
+        .json({ message: "Failed to fetch object", error: error.message });
+    }
+  }
+);
+
+app.delete(
+  "/api/delete-image",
+  async (req: Request, res: Response): Promise<any> => {
+    const params = {
+      Bucket: bucket_name,
+      Key: "fdbb6010db4af1140c1cfe53c47fef5ba660b0dc34fe751234a032a9501a18c3personTwo.png", // Correct 'Key' property
+    };
+
+    try {
+      const command = new DeleteObjectCommand(params);
+      await s3.send(command);
+
+      return res.status(200).json({ message: "Image Deleted Successfully" });
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ message: "Failed to fetch object", error: error });
     }
   }
 );
