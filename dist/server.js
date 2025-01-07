@@ -13,14 +13,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const multer_1 = __importDefault(require("multer"));
 const client_s3_1 = require("@aws-sdk/client-s3");
 const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
+const authRoutes_1 = require("./Routes/authRoutes");
 const crypto_1 = __importDefault(require("crypto"));
 const sharp_1 = __importDefault(require("sharp"));
-dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 const bucket_name = process.env.BUCKET_NAME;
@@ -38,6 +39,7 @@ const storage = multer_1.default.memoryStorage();
 const upload = (0, multer_1.default)({ storage: storage });
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
+app.use("/auth", authRoutes_1.authRoute);
 app.post("/api/posts", upload.single("image"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });

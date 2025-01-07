@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+dotenv.config();
 import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import multer from "multer";
@@ -9,10 +10,9 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { authRoute } from "./Routes/authRoutes";
 import crypto from "crypto";
 import sharp from "sharp";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +35,8 @@ const upload = multer({ storage: storage });
 
 app.use(cookieParser());
 app.use(express.json());
+
+app.use("/auth", authRoute);
 
 app.post(
   "/api/posts",
